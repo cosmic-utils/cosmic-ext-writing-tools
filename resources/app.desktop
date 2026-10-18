@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Cosmic Ext Writing Tools
+Comment=AI assisted writing tools
+Type=Application
+Icon=dev.edfloreshz.WritingTools
+Exec=cosmic_ext_writing_tools %F
+Terminal=false
+StartupNotify=true
+Categories=COSMIC
+Keywords=COSMIC
+MimeType=

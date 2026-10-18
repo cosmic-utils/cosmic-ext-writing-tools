@@ -1,0 +1,9 @@
+app-title = Cosmic Ext Writing Tools
+app-comment = AI assisted writing tools
+app-keywords =
+about = About
+repository = Repository
+view = View
+welcome = Welcome to COSMIC! ✨
+page-id = Page { $num }
+git-description = Git commit {$hash} on {$date}
