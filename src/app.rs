@@ -74,10 +74,15 @@ impl cosmic::Application for AppModel {
             .unwrap_or_default();
         let about = About::default()
             .name(fl!("app-title"))
+            .author("Eduardo Flores")
             .icon(widget::icon::from_svg_bytes(APP_ICON))
             .version(env!("CARGO_PKG_VERSION"))
-            .links([(fl!("repository"), REPOSITORY)])
-            .license(env!("CARGO_PKG_LICENSE"));
+            .license(env!("CARGO_PKG_LICENSE"))
+            .links([
+                (fl!("repository"), REPOSITORY.to_string()),
+                (fl!("support"), format!("{}/issues", REPOSITORY)),
+            ])
+            .developers([("Eduardo Flores", "edfloreshz@gmail.com")]);
 
         let mut app = Self {
             core,

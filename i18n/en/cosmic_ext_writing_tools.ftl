@@ -1,8 +1,9 @@
-app-title = Cosmic Ext Writing Tools
+app-title = Writing Tools
 app-comment = Private, local AI writing assistance
 app-keywords = writing;AI;local;Ollama;LM Studio;
 about = About
 repository = Repository
+support = Support
 view = View
 writing-tools = Writing Tools
 settings = Settings
