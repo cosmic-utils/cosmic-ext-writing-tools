@@ -1,6 +1,28 @@
 # Cosmic Ext Writing Tools
 
-AI assisted writing tools
+Private, local AI-assisted writing tools for COSMIC. It offers Apple-style writing actions—
+rewrite, proofread, summarize, and tone adjustments—without sending text to a cloud service.
+
+## Local model setup
+
+Writing Tools supports [Ollama](https://ollama.com/) and [LM Studio](https://lmstudio.ai/). Select
+the provider in **Local Model**, then set its endpoint and loaded model identifier.
+
+### Ollama
+
+Install Ollama, then download and start a model:
+
+```sh
+ollama run llama3.2
+```
+
+The default endpoint is `http://127.0.0.1:11434`, and the default model is `llama3.2`.
+
+### LM Studio
+
+Load a model in LM Studio and start its local server. Select **LM Studio** in Writing Tools, then
+set the endpoint to its server address—normally `http://127.0.0.1:1234`—and enter the loaded
+model's identifier. Writing Tools sends native LM Studio requests to `/api/v1/chat`.
 
 ## Installation
 

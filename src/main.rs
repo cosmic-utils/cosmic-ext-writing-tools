@@ -3,6 +3,8 @@
 mod app;
 mod config;
 mod i18n;
+mod provider;
+mod style;
 
 fn main() -> cosmic::iced::Result {
     // Get the system's preferred languages.
@@ -12,11 +14,14 @@ fn main() -> cosmic::iced::Result {
     i18n::init(&requested_languages);
 
     // Settings for configuring the application window and iced runtime.
-    let settings = cosmic::app::Settings::default().size_limits(
-        cosmic::iced::Limits::NONE
-            .min_width(360.0)
-            .min_height(180.0),
-    );
+    let settings = cosmic::app::Settings::default()
+        .size_limits(
+            cosmic::iced::Limits::NONE
+                .min_width(600.0)
+                .min_height(450.0),
+        )
+        .size(cosmic::iced::Size::new(600.0, 450.0))
+        .debug(false);
 
     // Starts the application's event loop with `()` as the application's flags.
     cosmic::app::run::<app::AppModel>(settings, ())

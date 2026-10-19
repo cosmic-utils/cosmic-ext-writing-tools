@@ -2,8 +2,20 @@
 
 use cosmic::cosmic_config::{self, CosmicConfigEntry, cosmic_config_derive::CosmicConfigEntry};
 
-#[derive(Debug, Default, Clone, CosmicConfigEntry, Eq, PartialEq)]
+#[derive(Debug, Clone, CosmicConfigEntry, Eq, PartialEq)]
 #[version = 1]
 pub struct Config {
-    demo: String,
+    pub provider: String,
+    pub endpoint: String,
+    pub model: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            provider: "ollama".to_string(),
+            endpoint: "http://127.0.0.1:11434".to_string(),
+            model: "llama3.2".to_string(),
+        }
+    }
 }

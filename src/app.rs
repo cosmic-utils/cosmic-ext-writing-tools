@@ -2,63 +2,60 @@
 
 use crate::config::Config;
 use crate::fl;
+use crate::provider;
+use crate::style::editor_style;
 use cosmic::app::context_drawer;
 use cosmic::cosmic_config::{self, CosmicConfigEntry};
-use cosmic::iced::alignment::{Horizontal, Vertical};
-use cosmic::iced::{Alignment, Length, Subscription, futures};
+use cosmic::cosmic_theme::Spacing;
+use cosmic::iced::Alignment;
+use cosmic::iced::Length;
 use cosmic::prelude::*;
-use cosmic::widget::{self, about::About, icon, menu, nav_bar};
-use futures::SinkExt;
+use cosmic::theme::spacing;
+use cosmic::widget::{self, about::About, menu, text_editor};
 use std::collections::HashMap;
-use std::time::Duration;
 
 const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 const APP_ICON: &[u8] = include_bytes!("../resources/icons/hicolor/scalable/apps/icon.svg");
 
-/// The application model stores app-specific state used to describe its interface and
-/// drive its logic.
 pub struct AppModel {
-    /// Application state which is managed by the COSMIC runtime.
     core: cosmic::Core,
-    /// Display a context drawer with the designated page if defined.
     context_page: ContextPage,
-    /// The about page for this app.
     about: About,
-    /// Contains items assigned to the nav bar panel.
-    nav: nav_bar::Model,
-    /// Key bindings for the application's menu bar.
     key_binds: HashMap<menu::KeyBind, MenuAction>,
-    /// Configuration data that persists between application runs.
     config: Config,
-    /// Time active
-    time: u32,
-    /// Toggle the watch subscription
-    watch_is_active: bool,
+    source: text_editor::Content<cosmic::Renderer>,
+    selected_tool: WritingTool,
+    tone: Tone,
+    tone_labels: [String; 2],
+    tool_model: widget::segmented_button::SingleSelectModel,
+    previous_draft: Option<String>,
+    status: String,
+    is_processing: bool,
 }
 
-/// Messages emitted by the application and its widgets.
 #[derive(Debug, Clone)]
 pub enum Message {
     LaunchUrl(String),
     ToggleContextPage(ContextPage),
-    ToggleWatch,
-    UpdateConfig(Config),
-    WatchTick(u32),
+    SourceEdited(text_editor::Action),
+    SelectProvider(provider::Provider),
+    UpdateEndpoint(String),
+    UpdateModel(String),
+    SelectTool(widget::segmented_button::Entity),
+    SelectTone(Tone),
+    ClearDraft,
+    RunTool,
+    AcceptSuggestion,
+    RejectSuggestion,
+    GenerationFinished(Result<String, String>),
 }
 
-/// Create a COSMIC application from the app model
 impl cosmic::Application for AppModel {
-    /// The async executor that will be used to run your application's commands.
     type Executor = cosmic::executor::Default;
-
-    /// Data that your application receives to its init method.
     type Flags = ();
-
-    /// Messages which the application and its widgets will emit.
     type Message = Message;
 
-    /// Unique identifier in RDNN (reverse domain name notation) format.
-    const APP_ID: &'static str = "dev.mmurphy.Test";
+    const APP_ID: &'static str = "dev.edfloreshz.WritingTools";
 
     fn core(&self) -> &cosmic::Core {
         &self.core
@@ -68,31 +65,13 @@ impl cosmic::Application for AppModel {
         &mut self.core
     }
 
-    /// Initializes the application with any given flags and startup commands.
     fn init(
         core: cosmic::Core,
         _flags: Self::Flags,
     ) -> (Self, Task<cosmic::Action<Self::Message>>) {
-        // Create a nav bar with three page items.
-        let mut nav = nav_bar::Model::default();
-
-        nav.insert()
-            .text(fl!("page-id", num = 1))
-            .data::<Page>(Page::Page1)
-            .icon(icon::from_name("applications-science-symbolic"))
-            .activate();
-
-        nav.insert()
-            .text(fl!("page-id", num = 2))
-            .data::<Page>(Page::Page2)
-            .icon(icon::from_name("applications-system-symbolic"));
-
-        nav.insert()
-            .text(fl!("page-id", num = 3))
-            .data::<Page>(Page::Page3)
-            .icon(icon::from_name("applications-games-symbolic"));
-
-        // Create the about widget
+        let config = cosmic_config::Config::new(Self::APP_ID, Config::VERSION)
+            .map(|context| Config::get_entry(&context).unwrap_or_else(|(_, config)| config))
+            .unwrap_or_default();
         let about = About::default()
             .name(fl!("app-title"))
             .icon(widget::icon::from_svg_bytes(APP_ICON))
@@ -100,55 +79,45 @@ impl cosmic::Application for AppModel {
             .links([(fl!("repository"), REPOSITORY)])
             .license(env!("CARGO_PKG_LICENSE"));
 
-        // Construct the app model with the runtime's core.
-        let mut app = AppModel {
+        let mut app = Self {
             core,
             context_page: ContextPage::default(),
             about,
-            nav,
             key_binds: HashMap::new(),
-            // Optional configuration file for an application.
-            config: cosmic_config::Config::new(Self::APP_ID, Config::VERSION)
-                .map(|context| match Config::get_entry(&context) {
-                    Ok(config) => config,
-                    Err((_errors, config)) => {
-                        // for why in errors {
-                        //     tracing::error!(%why, "error loading app config");
-                        // }
-
-                        config
-                    }
-                })
-                .unwrap_or_default(),
-            time: 0,
-            watch_is_active: false,
+            config,
+            source: text_editor::Content::new(),
+            selected_tool: WritingTool::Rewrite,
+            tone: Tone::Professional,
+            tone_labels: Tone::labels(),
+            tool_model: widget::segmented_button::Model::builder()
+                .insert(|b| b.text(fl!("rewrite")).data(WritingTool::Rewrite).activate())
+                .insert(|b| b.text(fl!("proofread")).data(WritingTool::Proofread))
+                .insert(|b| b.text(fl!("summarize")).data(WritingTool::Summarize))
+                .build(),
+            previous_draft: None,
+            status: fl!("ready"),
+            is_processing: false,
         };
-
-        // Create a startup command that sets the window title.
-        let command = app.update_title();
-
-        (app, command)
+        let task = app.update_title();
+        (app, task)
     }
 
-    /// Elements to pack at the start of the header bar.
     fn header_start(&self) -> Vec<Element<'_, Self::Message>> {
-        let menu_bar = menu::bar(vec![menu::Tree::with_children(
-            menu::root(fl!("view")).apply(Element::from),
-            menu::items(
-                &self.key_binds,
-                vec![menu::Item::Button(fl!("about"), None, MenuAction::About)],
-            ),
-        )]);
-
-        vec![menu_bar.into()]
+        vec![
+            menu::bar(vec![menu::Tree::with_children(
+                menu::root(fl!("view")).apply(Element::from),
+                menu::items(
+                    &self.key_binds,
+                    vec![
+                        menu::Item::Button(fl!("settings"), None, MenuAction::Settings),
+                        menu::Item::Button(fl!("about"), None, MenuAction::About),
+                    ],
+                ),
+            )])
+            .into(),
+        ]
     }
 
-    /// Enables the COSMIC application to create a nav bar with this model.
-    fn nav_model(&self) -> Option<&nav_bar::Model> {
-        Some(&self.nav)
-    }
-
-    /// Display a context drawer if the context page is requested.
     fn context_drawer(&self) -> Option<context_drawer::ContextDrawer<'_, Self::Message>> {
         if !self.core.window.show_context {
             return None;
@@ -160,205 +129,337 @@ impl cosmic::Application for AppModel {
                 |url| Message::LaunchUrl(url.to_string()),
                 Message::ToggleContextPage(ContextPage::About),
             ),
+            ContextPage::Settings => context_drawer::context_drawer(
+                self.settings_view(),
+                Message::ToggleContextPage(ContextPage::Settings),
+            )
+            .title(fl!("settings")),
         })
     }
 
-    /// Describes the interface based on the current state of the application model.
-    ///
-    /// Application events will be processed through the view. Any messages emitted by
-    /// events received by widgets will be passed to the update method.
-    fn view(&self) -> Element<'_, Self::Message> {
-        let space_s = cosmic::theme::spacing().space_s;
-        let content: Element<_> = match self.nav.active_data::<Page>().unwrap() {
-            Page::Page1 => {
-                let header = widget::row::with_capacity(2)
-                    .push(widget::text::title1(fl!("welcome")))
-                    .push(widget::text::title3(fl!("page-id", num = 1)))
-                    .align_y(Alignment::End)
-                    .spacing(space_s);
+    fn footer(&self) -> Option<Element<'_, Self::Message>> {
+        let Spacing {
+            space_s, space_xxs, ..
+        } = spacing();
 
-                let counter_label = ["Watch: ", self.time.to_string().as_str()].concat();
-                let section = cosmic::widget::settings::section().add(
-                    cosmic::widget::settings::item::builder(counter_label).control(
-                        widget::button::text(if self.watch_is_active {
-                            "Stop"
-                        } else {
-                            "Start"
-                        })
-                        .on_press(Message::ToggleWatch),
-                    ),
-                );
+        let can_run = !self.is_processing && self.previous_draft.is_none();
 
-                widget::column::with_capacity(2)
-                    .push(header)
-                    .push(section)
-                    .spacing(space_s)
-                    .height(Length::Fill)
-                    .into()
-            }
+        let reject = if self.previous_draft.is_some() {
+            widget::button::text(fl!("reject")).on_press(Message::RejectSuggestion)
+        } else {
+            widget::button::text(fl!("clear")).on_press(Message::ClearDraft)
+        };
+        let accept = if self.previous_draft.is_some() {
+            widget::button::suggested(fl!("accept")).on_press(Message::AcceptSuggestion)
+        } else {
+            let label = if self.is_processing {
+                fl!("working")
+            } else {
+                fl!("generate")
+            };
 
-            Page::Page2 => {
-                let header = widget::row::with_capacity(2)
-                    .push(widget::text::title1(fl!("welcome")))
-                    .push(widget::text::title3(fl!("page-id", num = 2)))
-                    .align_y(Alignment::End)
-                    .spacing(space_s);
-
-                widget::column::with_capacity(1)
-                    .push(header)
-                    .spacing(space_s)
-                    .height(Length::Fill)
-                    .into()
-            }
-
-            Page::Page3 => {
-                let header = widget::row::with_capacity(2)
-                    .push(widget::text::title1(fl!("welcome")))
-                    .push(widget::text::title3(fl!("page-id", num = 3)))
-                    .align_y(Alignment::End)
-                    .spacing(space_s);
-
-                widget::column::with_capacity(1)
-                    .push(header)
-                    .spacing(space_s)
-                    .height(Length::Fill)
-                    .into()
-            }
+            widget::button::suggested(label).on_press_maybe(can_run.then_some(Message::RunTool))
         };
 
-        widget::container(content)
-            .width(600)
+        Some(
+            widget::row::with_capacity(4)
+                .push(widget::text::caption(&self.status))
+                .push(widget::space::horizontal())
+                .push(reject)
+                .push(accept)
+                .spacing(space_s)
+                .padding([space_xxs, space_s])
+                .align_y(Alignment::Center)
+                .into(),
+        )
+    }
+
+    fn view(&self) -> Element<'_, Self::Message> {
+        let Spacing {
+            space_s, space_xxs, ..
+        } = spacing();
+
+        let header = widget::row::with_capacity(2)
+            .push(widget::icon::from_name("edit-paste-symbolic").size(18))
+            .push(widget::text::title3(fl!("writing-tools")))
+            .push(widget::space::horizontal())
+            .spacing(space_s)
+            .align_y(Alignment::Center);
+
+        let task_selector = widget::segmented_button::horizontal(&self.tool_model)
+            .style(cosmic::theme::SegmentedButton::Control)
+            .button_alignment(Alignment::Center)
+            .button_height(36)
+            .button_padding([12, 8, 12, 8])
+            .button_spacing(space_xxs)
+            .on_activate(Message::SelectTool);
+
+        let tone_row = widget::row::with_capacity(3)
+            .push(widget::text::body(fl!("tone")))
+            .push(widget::dropdown(
+                &self.tone_labels,
+                Some(self.tone.index()),
+                |index| Message::SelectTone(Tone::ALL[index]),
+            ))
+            .spacing(space_xxs)
+            .align_y(Alignment::Center);
+
+        let options_row = widget::row::with_capacity(2)
+            .push(task_selector)
+            .push(tone_row)
+            .spacing(space_s)
+            .align_y(Alignment::Center);
+
+        let editor = text_editor::text_editor(&self.source)
+            .placeholder(fl!("source-placeholder"))
+            .style(editor_style)
+            .padding(space_s)
             .height(Length::Fill)
-            .apply(widget::container)
+            .on_action(Message::SourceEdited);
+
+        let content = widget::column([])
+            .push(header)
+            .push(options_row)
+            .push(editor)
+            .spacing(space_s)
+            .padding(space_s)
             .width(Length::Fill)
-            .align_x(Horizontal::Center)
-            .align_y(Vertical::Center)
-            .into()
+            .height(Length::Fill);
+
+        content.into()
     }
 
-    /// Register subscriptions for this application.
-    ///
-    /// Subscriptions are long-running async tasks running in the background which
-    /// emit messages to the application through a channel. They can be dynamically
-    /// stopped and started conditionally based on application state, or persist
-    /// indefinitely.
-    fn subscription(&self) -> Subscription<Self::Message> {
-        // Add subscriptions which are always active.
-        let mut subscriptions = vec![
-            // Watch for application configuration changes.
-            self.core()
-                .watch_config::<Config>(Self::APP_ID)
-                .map(|update| {
-                    // for why in update.errors {
-                    //     tracing::error!(?why, "app config error");
-                    // }
-
-                    Message::UpdateConfig(update.config)
-                }),
-        ];
-
-        // Conditionally enables a timer that emits a message every second.
-        if self.watch_is_active {
-            subscriptions.push(Subscription::run(|| {
-                cosmic::iced::stream::channel(1, |mut emitter: futures::channel::mpsc::Sender<_>| async move {
-                    let mut time = 1;
-                    let mut interval = tokio::time::interval(Duration::from_secs(1));
-
-                    loop {
-                        interval.tick().await;
-                        _ = emitter.send(Message::WatchTick(time)).await;
-                        time += 1;
-                    }
-                })
-            }));
-        }
-
-        Subscription::batch(subscriptions)
-    }
-
-    /// Handles messages emitted by the application and its widgets.
-    ///
-    /// Tasks may be returned for asynchronous execution of code in the background
-    /// on the application's async runtime.
     fn update(&mut self, message: Self::Message) -> Task<cosmic::Action<Self::Message>> {
         match message {
-            Message::WatchTick(time) => {
-                self.time = time;
+            Message::LaunchUrl(url) => {
+                if let Err(error) = open::that_detached(&url) {
+                    self.status = format!("Could not open link: {error}");
+                }
             }
-
-            Message::ToggleWatch => {
-                self.watch_is_active = !self.watch_is_active;
-            }
-
-            Message::ToggleContextPage(context_page) => {
-                if self.context_page == context_page {
-                    // Close the context drawer if the toggled context page is the same.
+            Message::ToggleContextPage(page) => {
+                if self.context_page == page {
                     self.core.window.show_context = !self.core.window.show_context;
                 } else {
-                    // Open the context drawer to display the requested context page.
-                    self.context_page = context_page;
+                    self.context_page = page;
                     self.core.window.show_context = true;
                 }
             }
-
-            Message::UpdateConfig(config) => {
-                self.config = config;
-            }
-
-            Message::LaunchUrl(url) => match open::that_detached(&url) {
-                Ok(()) => {}
-                Err(err) => {
-                    eprintln!("failed to open {url:?}: {err}");
+            Message::SourceEdited(action) => {
+                if self.is_processing {
+                    return Task::none();
                 }
-            },
+                if action.is_edit() && self.previous_draft.take().is_some() {
+                    self.status = fl!("accepted");
+                }
+                self.source.perform(action);
+            }
+            Message::SelectProvider(provider) => self.save_config(Config {
+                provider: match provider {
+                    provider::Provider::Ollama => "ollama",
+                    provider::Provider::LmStudio => "lm-studio",
+                }
+                .to_string(),
+                endpoint: self.config.endpoint.clone(),
+                model: self.config.model.clone(),
+            }),
+            Message::UpdateEndpoint(endpoint) => self.save_config(Config {
+                provider: self.config.provider.clone(),
+                endpoint,
+                model: self.config.model.clone(),
+            }),
+            Message::UpdateModel(model) => self.save_config(Config {
+                provider: self.config.provider.clone(),
+                endpoint: self.config.endpoint.clone(),
+                model,
+            }),
+            Message::SelectTool(id) => {
+                self.tool_model.activate(id);
+                if let Some(tool) = self.tool_model.data::<WritingTool>(id) {
+                    self.selected_tool = *tool;
+                }
+                self.previous_draft = None;
+            }
+            Message::SelectTone(tone) => {
+                self.tone = tone;
+                self.previous_draft = None;
+            }
+            Message::ClearDraft => {
+                self.source = text_editor::Content::new();
+                self.previous_draft = None;
+                self.status = fl!("ready");
+            }
+            Message::RunTool => {
+                if self.previous_draft.is_some() || self.is_processing {
+                    return Task::none();
+                }
+                let text = self.source.text();
+                if text.trim().is_empty() {
+                    self.status = fl!("enter-text");
+                    return Task::none();
+                }
+                return self.generate(self.selected_tool.prompt(&text, self.tone));
+            }
+            Message::AcceptSuggestion => {
+                if self.previous_draft.take().is_some() {
+                    self.status = fl!("accepted");
+                }
+            }
+            Message::RejectSuggestion => {
+                if let Some(previous) = self.previous_draft.take() {
+                    self.source = text_editor::Content::with_text(&previous);
+                    self.status = fl!("rejected");
+                }
+            }
+            Message::GenerationFinished(result) => {
+                self.is_processing = false;
+                match result {
+                    Ok(text) if text.is_empty() => self.status = fl!("empty-response"),
+                    Ok(text) => {
+                        self.previous_draft = Some(self.source.text());
+                        self.source = text_editor::Content::with_text(&text);
+                        self.status = fl!("review-suggestion");
+                    }
+                    Err(error) => self.status = error,
+                }
+            }
         }
         Task::none()
-    }
-
-    /// Called when a nav item is selected.
-    fn on_nav_select(&mut self, id: nav_bar::Id) -> Task<cosmic::Action<Self::Message>> {
-        // Activate the page in the model.
-        self.nav.activate(id);
-
-        self.update_title()
     }
 }
 
 impl AppModel {
-    /// Updates the header and window titles.
-    pub fn update_title(&mut self) -> Task<cosmic::Action<Message>> {
-        let mut window_title = fl!("app-title");
+    fn settings_view(&self) -> Element<'_, Message> {
+        let Spacing { space_s, .. } = spacing();
+        let provider = provider::Provider::from_config(&self.config.provider);
+        let provider_buttons = widget::row::with_capacity(2)
+            .push(
+                widget::button::text(fl!("ollama")).on_press_maybe(
+                    (provider != provider::Provider::Ollama)
+                        .then_some(Message::SelectProvider(provider::Provider::Ollama)),
+                ),
+            )
+            .push(
+                widget::button::text(fl!("lm-studio")).on_press_maybe(
+                    (provider != provider::Provider::LmStudio)
+                        .then_some(Message::SelectProvider(provider::Provider::LmStudio)),
+                ),
+            )
+            .spacing(space_s);
+        let help = match provider {
+            provider::Provider::Ollama => fl!("ollama-help"),
+            provider::Provider::LmStudio => fl!("lm-studio-help"),
+        };
 
-        if let Some(page) = self.nav.text(self.nav.active()) {
-            window_title.push_str(" — ");
-            window_title.push_str(page);
-        }
+        widget::column::with_capacity(7)
+            .push(widget::text::body(fl!("local-only-description")))
+            .push(widget::text::heading(fl!("provider")))
+            .push(provider_buttons)
+            .push(widget::text::heading(fl!("model-endpoint")))
+            .push(
+                widget::text_input::text_input("", &self.config.endpoint)
+                    .on_input(Message::UpdateEndpoint),
+            )
+            .push(widget::text::heading(fl!("model-name")))
+            .push(
+                widget::text_input::text_input("", &self.config.model)
+                    .on_input(Message::UpdateModel),
+            )
+            .push(widget::text::caption(help))
+            .spacing(space_s)
+            .into()
+    }
 
-        if let Some(id) = self.core.main_window_id() {
-            self.set_window_title(window_title, id)
-        } else {
-            Task::none()
+    fn save_config(&mut self, config: Config) {
+        self.config = config;
+        match cosmic_config::Config::new(<Self as cosmic::Application>::APP_ID, Config::VERSION) {
+            Ok(context) => {
+                if let Err(error) = self.config.write_entry(&context) {
+                    self.status = format!("Could not save model settings: {error}");
+                }
+            }
+            Err(error) => self.status = format!("Could not open model settings: {error}"),
         }
+    }
+
+    fn generate(&mut self, prompt: String) -> Task<cosmic::Action<Message>> {
+        self.is_processing = true;
+        self.status = fl!("working");
+        Task::perform(
+            provider::generate(
+                provider::Provider::from_config(&self.config.provider),
+                self.config.endpoint.clone(),
+                self.config.model.clone(),
+                prompt,
+            ),
+            Message::GenerationFinished,
+        )
+        .map(cosmic::Action::App)
+    }
+
+    fn update_title(&mut self) -> Task<cosmic::Action<Message>> {
+        self.core
+            .main_window_id()
+            .map_or_else(Task::none, |id| self.set_window_title(fl!("app-title"), id))
     }
 }
 
-/// The page to display in the application.
-pub enum Page {
-    Page1,
-    Page2,
-    Page3,
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WritingTool {
+    Rewrite,
+    Proofread,
+    Summarize,
 }
 
-/// The context page to display in the context drawer.
+impl WritingTool {
+    fn prompt(self, text: &str, tone: Tone) -> String {
+        let instruction = match self {
+            Self::Rewrite => "Rewrite the draft for clarity and flow while preserving its meaning.",
+            Self::Proofread => {
+                "Proofread the draft, correcting grammar, spelling, and punctuation while preserving the author's voice."
+            }
+            Self::Summarize => "Summarize the draft concisely while preserving its key points.",
+        };
+        let tone_instruction = match (self, tone) {
+            (Self::Summarize, _) | (Self::Proofread, _) => "",
+            (_, Tone::Friendly) => " Use a warm, friendly tone.",
+            (_, Tone::Professional) => " Use a clear, professional tone.",
+        };
+
+        format!(
+            "{instruction}{tone_instruction}\n\nReturn only the requested replacement text, without commentary or quotation marks.\n\nDraft:\n{text}"
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Tone {
+    Friendly,
+    Professional,
+}
+
+impl Tone {
+    const ALL: [Tone; 2] = [Tone::Friendly, Tone::Professional];
+
+    fn labels() -> [String; 2] {
+        [fl!("friendly"), fl!("professional")]
+    }
+
+    fn index(self) -> usize {
+        Self::ALL.iter().position(|t| *t == self).unwrap_or(0)
+    }
+}
+
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub enum ContextPage {
     #[default]
     About,
+    Settings,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MenuAction {
     About,
+    Settings,
 }
 
 impl menu::action::MenuAction for MenuAction {
@@ -366,7 +467,22 @@ impl menu::action::MenuAction for MenuAction {
 
     fn message(&self) -> Self::Message {
         match self {
-            MenuAction::About => Message::ToggleContextPage(ContextPage::About),
+            Self::About => Message::ToggleContextPage(ContextPage::About),
+            Self::Settings => Message::ToggleContextPage(ContextPage::Settings),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WritingTool;
+
+    #[test]
+    fn writing_prompt_preserves_the_source_text() {
+        let source = "A short draft.";
+        let prompt = WritingTool::Rewrite.prompt(source, super::Tone::Friendly);
+
+        assert!(prompt.contains("friendly tone"));
+        assert!(prompt.ends_with(source));
     }
 }
