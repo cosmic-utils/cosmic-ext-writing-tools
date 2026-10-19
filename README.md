@@ -1,29 +1,13 @@
-<p align="center">
-  <img src="resources/icons/hicolor/scalable/apps/icon.svg" width="256" alt="Writing Tools icon">
-</p>
-
-# Writing Tools
-
-Private, local AI-assisted writing tools for the COSMIC™ desktop.
-
-Writing Tools offers Apple-style writing actions, rewrite, proofread, summarize, and tone adjustments, powered by a model running on your own machine. Your text is never sent to a cloud service.
-
-[![window-light.png](resources/screenshots/window-light.png#gh-light-mode-only)](resources/screenshots/window-light.png#gh-light-mode-only)
-[![window-dark.png](resources/screenshots/window-dark.png#gh-dark-mode-only)](resources/screenshots/window-dark.png#gh-dark-mode-only)
-
-[![wizard-1-light.png](resources/screenshots/wizard-1-light.png#gh-light-mode-only)](resources/screenshots/wizard-1-light.png#gh-light-mode-only)
-[![wizard-1-dark.png](resources/screenshots/wizard-1-dark.png#gh-dark-mode-only)](resources/screenshots/wizard-1-dark.png#gh-dark-mode-only)
-
-[![wizard-2-light.png](resources/screenshots/wizard-2-light.png#gh-light-mode-only)](resources/screenshots/wizard-2-light.png#gh-light-mode-only)
-[![wizard-2-dark.png](resources/screenshots/wizard-2-dark.png#gh-dark-mode-only)](resources/screenshots/wizard-2-dark.png#gh-dark-mode-only)
-
-[![wizard-3-light.png](resources/screenshots/wizard-3-light.png#gh-light-mode-only)](resources/screenshots/wizard-3-light.png#gh-light-mode-only)
-[![wizard-3-dark.png](resources/screenshots/wizard-3-dark.png#gh-dark-mode-only)](resources/screenshots/wizard-3-dark.png#gh-dark-mode-only)
-
-[![wizard-4-light.png](resources/screenshots/wizard-4-light.png#gh-light-mode-only)](resources/screenshots/wizard-4-light.png#gh-light-mode-only)
-[![wizard-4-dark.png](resources/screenshots/wizard-4-dark.png#gh-dark-mode-only)](resources/screenshots/wizard-4-dark.png#gh-dark-mode-only)
+<div align="center">
+  <img src="resources/icons/hicolor/scalable/apps/icon.svg" width="180" alt="Writing Tools icon">
+  <h2>Writing Tools</h2>
+  <h5>Private, local AI-assisted writing tools for the COSMIC™ desktop.</h5>
+  <img src="resources/screenshots/window-light.png#gh-light-mode-only">
+  <img src="resources/screenshots/window-dark.png#gh-dark-mode-only">
+</div>
 
 ## Features
+Writing Tools offers Apple-style writing actions, rewrite, proofread, summarize, and tone adjustments, powered by a model running on your own machine. Your text is never sent to a cloud service.
 
 - **Rewrite** text while keeping its meaning.
 - **Proofread** for spelling, grammar, and punctuation.
