@@ -89,10 +89,6 @@ It is recommended to build a source tarball with the vendored dependencies, whic
 
 [Fluent](https://projectfluent.org/) is used for localization of the software. Fluent's translation files are found in the [i18n directory](./i18n). To add a new translation, copy the [English (en) localization](./i18n/en), rename `en` to the desired [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), and provide a translation for each [message identifier](https://projectfluent.org/fluent/guide/hello.html). If no translation is necessary, the message may be omitted.
 
-## Developers
-
-Install [rustup](https://rustup.rs/) and configure your editor to use [rust-analyzer](https://rust-analyzer.github.io/). To improve compilation times, disable LTO in the release profile, install the [mold](https://github.com/rui314/mold) linker, and configure [sccache](https://github.com/mozilla/sccache) for use with Rust. The mold linker will only improve link times if LTO is disabled.
-
 ## Copyright and licensing
 
 Copyright 2026 © Eduardo Flores
