@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use cosmic::{
+    Application,
+    cosmic_config::{self, CosmicConfigEntry},
+};
+
+use crate::{app::AppModel, config::Config};
+
 mod app;
 mod config;
 mod i18n;
@@ -13,6 +20,16 @@ fn main() -> cosmic::iced::Result {
     // Enable localizations to be applied.
     i18n::init(&requested_languages);
 
+    let config = cosmic_config::Config::new(AppModel::APP_ID, Config::VERSION)
+        .map(|context| Config::get_entry(&context).unwrap_or_else(|(_, config)| config))
+        .unwrap_or_default();
+
+    let size = if config.setup_complete {
+        cosmic::iced::Size::new(600.0, 450.0)
+    } else {
+        cosmic::iced::Size::new(600.0, 700.0)
+    };
+
     // Settings for configuring the application window and iced runtime.
     let settings = cosmic::app::Settings::default()
         .size_limits(
@@ -20,7 +37,7 @@ fn main() -> cosmic::iced::Result {
                 .min_width(600.0)
                 .min_height(450.0),
         )
-        .size(cosmic::iced::Size::new(600.0, 700.0))
+        .size(size)
         .debug(false);
 
     // Starts the application's event loop with `()` as the application's flags.

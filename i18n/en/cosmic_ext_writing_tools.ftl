@@ -19,6 +19,7 @@ professional = Professional
 source-placeholder = Write or paste text here
 ready = Ready
 clear = Clear
+copy = Copy
 generate = Generate
 tone = Tone:
 working = Working…

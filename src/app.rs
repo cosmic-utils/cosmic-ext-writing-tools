@@ -50,6 +50,7 @@ pub enum Message {
     SelectTone(Tone),
     ClearDraft,
     RunTool,
+    CopyDraft,
     AcceptSuggestion,
     RejectSuggestion,
     GenerationFinished(Result<String, String>),
@@ -170,11 +171,10 @@ impl cosmic::Application for AppModel {
 
         let can_run = !self.is_processing && self.previous_draft.is_none();
 
-        let reject = if self.previous_draft.is_some() {
-            widget::button::text(fl!("reject")).on_press(Message::RejectSuggestion)
-        } else {
-            widget::button::text(fl!("clear")).on_press(Message::ClearDraft)
-        };
+        let reject = self
+            .previous_draft
+            .is_some()
+            .then_some(widget::button::text(fl!("reject")).on_press(Message::RejectSuggestion));
         let accept = if self.previous_draft.is_some() {
             widget::button::suggested(fl!("accept")).on_press(Message::AcceptSuggestion)
         } else {
@@ -191,7 +191,7 @@ impl cosmic::Application for AppModel {
             widget::row::with_capacity(4)
                 .push(widget::text::caption(&self.status))
                 .push(widget::space::horizontal())
-                .push(reject)
+                .push_maybe(reject)
                 .push(accept)
                 .spacing(space_s)
                 .padding([space_xxs, space_s])
@@ -206,15 +206,11 @@ impl cosmic::Application for AppModel {
         }
 
         let Spacing {
-            space_s, space_xxs, ..
+            space_s,
+            space_xxs,
+            space_xl,
+            ..
         } = spacing();
-
-        let header = widget::row::with_capacity(2)
-            .push(widget::icon::from_name("edit-paste-symbolic").size(18))
-            .push(widget::text::title3(fl!("writing-tools")))
-            .push(widget::space::horizontal())
-            .spacing(space_s)
-            .align_y(Alignment::Center);
 
         let task_selector = widget::segmented_button::horizontal(&self.tool_model)
             .style(cosmic::theme::SegmentedButton::Control)
@@ -243,14 +239,35 @@ impl cosmic::Application for AppModel {
         let editor = text_editor::text_editor(&self.source)
             .placeholder(fl!("source-placeholder"))
             .style(editor_style)
-            .padding(space_s)
+            .padding([space_xxs, space_xl, space_xxs, space_xxs])
             .height(Length::Fill)
             .on_action(Message::SourceEdited);
 
+        let actions = widget::container(
+            widget::row([]).push(widget::space::horizontal()).push(
+                widget::column([])
+                    .push(widget::tooltip(
+                        widget::button::icon(widget::icon::from_name("edit-clear-symbolic"))
+                            .on_press(Message::ClearDraft),
+                        widget::text(fl!("clear")),
+                        widget::tooltip::Position::Left,
+                    ))
+                    .push(widget::space::vertical())
+                    .push(widget::tooltip(
+                        widget::button::icon(widget::icon::from_name("edit-copy-symbolic"))
+                            .on_press(Message::CopyDraft),
+                        widget::text(fl!("copy")),
+                        widget::tooltip::Position::Left,
+                    )),
+            ),
+        )
+        .padding(space_s);
+
+        let stack = cosmic::iced::widget::stack![editor, actions];
+
         let content = widget::column([])
-            .push(header)
             .push(options_row)
-            .push(editor)
+            .push(stack)
             .spacing(space_s)
             .padding(space_s)
             .width(Length::Fill)
@@ -406,6 +423,13 @@ impl cosmic::Application for AppModel {
                         Ok(()) => ConnectionState::Connected,
                         Err(error) => ConnectionState::Failed(error),
                     };
+                }
+            }
+            Message::CopyDraft => {
+                let text = self.source.text();
+
+                if !text.is_empty() {
+                    return cosmic::iced::clipboard::write(text).map(cosmic::Action::App);
                 }
             }
         }
