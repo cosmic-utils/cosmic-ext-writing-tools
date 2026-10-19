@@ -3,32 +3,105 @@
   <id>dev.edfloreshz.WritingTools</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
-  <name>Cosmic Ext Writing Tools</name>
+  <name>Writing Tools</name>
   <summary>Private, local AI writing assistance</summary>
+
+  <description>
+    <p>
+      Writing Tools provides private, local AI writing assistance right on your desktop,
+      integrating seamlessly with backends like Ollama and LM Studio. Proofread text,
+      improve grammar, and rewrite content securely without sending data to the cloud.
+    </p>
+  </description>
+
+  <developer id="dev.edfloreshz">
+    <name>Eduardo Flores</name>
+  </developer>
+
   <icon type="remote" width="64" height="64" scale="1">
     https://github.com/cosmic-utils/cosmic-ext-writing-tools/raw/main/resources/icons/hicolor/scalable/apps/icon.svg
   </icon>
+
+  <url type="homepage">https://github.com/cosmic-utils/cosmic-ext-writing-tools</url>
   <url type="vcs-browser">https://github.com/cosmic-utils/cosmic-ext-writing-tools</url>
+  <url type="bugtracker">https://github.com/cosmic-utils/cosmic-ext-writing-tools/issues</url>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#a1aec6</color>
+    <color type="primary" scheme_preference="dark">#192746</color>
+  </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Rewrite, proofread, and summarize text with a local model</caption>
+      <image type="source">https://raw.githubusercontent.com/cosmic-utils/cosmic-ext-writing-tools/main/resources/screenshots/window-light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Set up Writing Tools on first launch: step 1</caption>
+      <image type="source">https://raw.githubusercontent.com/cosmic-utils/cosmic-ext-writing-tools/main/resources/screenshots/wizard-1-light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Set up Writing Tools on first launch: step 2</caption>
+      <image type="source">https://raw.githubusercontent.com/cosmic-utils/cosmic-ext-writing-tools/main/resources/screenshots/wizard-2-light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Set up Writing Tools on first launch: step 3</caption>
+      <image type="source">https://raw.githubusercontent.com/cosmic-utils/cosmic-ext-writing-tools/main/resources/screenshots/wizard-3-light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Set up Writing Tools on first launch: step 4</caption>
+      <image type="source">https://raw.githubusercontent.com/cosmic-utils/cosmic-ext-writing-tools/main/resources/screenshots/wizard-4-light.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="0.1.0" date="2026-10-19">
+      <description>
+        <p>Initial release.</p>
+          <ul>
+            <li>Rewrite, proofread, and summarize text</li>
+            <li>Adjust the tone of your writing</li>
+            <li>Local model support for Ollama and LM Studio</li>
+          </ul>
+      </description>
+    </release>
+  </releases>
+
   <launchable type="desktop-id">dev.edfloreshz.WritingTools.desktop</launchable>
+
   <provides>
     <id>com.system76.CosmicApplication</id>
     <binaries>
       <binary>cosmic_ext_writing_tools</binary>
     </binaries>
   </provides>
+
   <requires>
     <display_length compare="ge">360</display_length>
   </requires>
+
   <supports>
     <control>keyboard</control>
     <control>pointing</control>
     <control>touch</control>
   </supports>
+
   <categories>
     <category>COSMIC</category>
+    <category>Utility</category>
+    <category>TextEditor</category>
+    <category>Office</category>
   </categories>
+
   <keywords>
     <keyword>COSMIC</keyword>
+    <keyword>writing</keyword>
+    <keyword>AI</keyword>
+    <keyword>local</keyword>
+    <keyword>Ollama</keyword>
+    <keyword>LM Studio</keyword>
+    <keyword>grammar</keyword>
   </keywords>
+
   <content_rating type="oars-1.1" />
 </component>

@@ -11,6 +11,18 @@ Writing Tools offers Apple-style writing actions, rewrite, proofread, summarize,
 [![window-light.png](resources/screenshots/window-light.png#gh-light-mode-only)](resources/screenshots/window-light.png#gh-light-mode-only)
 [![window-dark.png](resources/screenshots/window-dark.png#gh-dark-mode-only)](resources/screenshots/window-dark.png#gh-dark-mode-only)
 
+[![wizard-1-light.png](resources/screenshots/wizard-1-light.png#gh-light-mode-only)](resources/screenshots/wizard-1-light.png#gh-light-mode-only)
+[![wizard-1-dark.png](resources/screenshots/wizard-1-dark.png#gh-dark-mode-only)](resources/screenshots/wizard-1-dark.png#gh-dark-mode-only)
+
+[![wizard-2-light.png](resources/screenshots/wizard-2-light.png#gh-light-mode-only)](resources/screenshots/wizard-2-light.png#gh-light-mode-only)
+[![wizard-2-dark.png](resources/screenshots/wizard-2-dark.png#gh-dark-mode-only)](resources/screenshots/wizard-2-dark.png#gh-dark-mode-only)
+
+[![wizard-3-light.png](resources/screenshots/wizard-3-light.png#gh-light-mode-only)](resources/screenshots/wizard-3-light.png#gh-light-mode-only)
+[![wizard-3-dark.png](resources/screenshots/wizard-3-dark.png#gh-dark-mode-only)](resources/screenshots/wizard-3-dark.png#gh-dark-mode-only)
+
+[![wizard-4-light.png](resources/screenshots/wizard-4-light.png#gh-light-mode-only)](resources/screenshots/wizard-4-light.png#gh-light-mode-only)
+[![wizard-4-dark.png](resources/screenshots/wizard-4-dark.png#gh-dark-mode-only)](resources/screenshots/wizard-4-dark.png#gh-dark-mode-only)
+
 ## Features
 
 - **Rewrite** text while keeping its meaning.
