@@ -20,7 +20,7 @@ fn main() -> cosmic::iced::Result {
                 .min_width(600.0)
                 .min_height(450.0),
         )
-        .size(cosmic::iced::Size::new(600.0, 450.0))
+        .size(cosmic::iced::Size::new(600.0, 700.0))
         .debug(false);
 
     // Starts the application's event loop with `()` as the application's flags.

@@ -8,6 +8,7 @@ pub struct Config {
     pub provider: String,
     pub endpoint: String,
     pub model: String,
+    pub setup_complete: bool,
 }
 
 impl Default for Config {
@@ -16,6 +17,7 @@ impl Default for Config {
             provider: "ollama".to_string(),
             endpoint: "http://127.0.0.1:11434".to_string(),
             model: "llama3.2".to_string(),
+            setup_complete: false,
         }
     }
 }
